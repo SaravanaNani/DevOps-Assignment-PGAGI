@@ -1,199 +1,157 @@
-# 🚀 DevOps Assignment – Production Grade Cloud Deployment
+# 🚀 DevOps Assignment – Multi-Cloud Production Architecture
 
-This project demonstrates a production-ready DevOps architecture deploying a FastAPI backend and Next.js frontend using:
+## 📌 Overview
 
-- ✅ AWS (ECS Fargate, ALB, NAT, Autoscaling)
-- ✅ GCP (MIG, Global Load Balancer, NAT)
-- ✅ Modular Terraform (Multi-Environment)
-- ✅ Zero Downtime Deployments
-- ✅ Autoscaling (CPU-based)
-- ✅ Path-Based Routing
-- ✅ CI/CD Ready Structure
+This project demonstrates a **production-grade DevOps architecture** deployed across:
 
----
-
-# 🏗 Architecture Overview
-
-## AWS Architecture
-
-- VPC (Multi-AZ)
-- Public Subnets (ALB)
-- Private Subnets (ECS Fargate)
-- NAT Gateway (Internet access for containers)
-- Application Load Balancer
-- Path-based routing:
-  - `/` → Frontend
-  - `/api/*` → Backend
-- ECS Services (Frontend + Backend)
-- Auto Scaling (Target Tracking - 60% CPU)
-- Rolling Deployments (Zero Downtime)
-
-## GCP Architecture
-
-- Custom VPC
-- Private Compute Instances (MIG)
-- Global HTTP Load Balancer
-- Health Checks
-- Cloud NAT
-- Autoscaling
-- Path-based routing
+* ☁️ AWS (ECS Fargate + ALB)
+* ☁️ GCP (Compute Engine + Global Load Balancer)
+* 🐳 Dockerized Frontend & Backend
+* 🏗 Modular Terraform Infrastructure
+* 🔁 Zero Downtime Deployments
+* 📈 Autoscaling Enabled
+* 🔐 Private Compute with Public Load Balancer
+* 🌍 Multi-Environment Support (dev / staging / prod)
 
 ---
 
-# 📁 Repository Structure
-# 🚀 DevOps Assignment – Production Grade Cloud Deployment
+# 🏛 Architecture
 
-This project demonstrates a production-ready DevOps architecture deploying a FastAPI backend and Next.js frontend using:
+## 🔹 AWS Architecture
 
-- ✅ AWS (ECS Fargate, ALB, NAT, Autoscaling)
-- ✅ GCP (MIG, Global Load Balancer, NAT)
-- ✅ Modular Terraform (Multi-Environment)
-- ✅ Zero Downtime Deployments
-- ✅ Autoscaling (CPU-based)
-- ✅ Path-Based Routing
-- ✅ CI/CD Ready Structure
+* VPC (Multi-AZ)
+* Public Subnets (ALB)
+* Private Subnets (ECS Fargate)
+* NAT Gateway (Outbound Internet)
+* Application Load Balancer (Path Routing)
+* ECS Fargate Services (Frontend & Backend)
+* Autoscaling (CPU Based)
+* Zero Downtime Rolling Deployments
+
+Routing:
+
+* `/` → Frontend
+* `/api/*` → Backend
 
 ---
 
-# 🏗 Architecture Overview
+## 🔹 GCP Architecture
 
-## AWS Architecture
-
-- VPC (Multi-AZ)
-- Public Subnets (ALB)
-- Private Subnets (ECS Fargate)
-- NAT Gateway (Internet access for containers)
-- Application Load Balancer
-- Path-based routing:
-  - `/` → Frontend
-  - `/api/*` → Backend
-- ECS Services (Frontend + Backend)
-- Auto Scaling (Target Tracking - 60% CPU)
-- Rolling Deployments (Zero Downtime)
-
-## GCP Architecture
-
-- Custom VPC
-- Private Compute Instances (MIG)
-- Global HTTP Load Balancer
-- Health Checks
-- Cloud NAT
-- Autoscaling
-- Path-based routing
+* Custom VPC
+* Private Compute Instances (Managed Instance Groups)
+* Global HTTP Load Balancer
+* Backend Services
+* Health Checks
+* Cloud NAT
+* Autoscaling
+* Path-Based Routing
 
 ---
 
 # 📁 Repository Structure
-.
-├── backend/
-├── frontend/
-├── Infra/
-│ ├── aws/
-│ │ ├── modules/
-│ │ └── environments/
-│ │ ├── dev/
-│ │ ├── staging/
-│ │ └── prod/
-│ └── gcp/
-│ ├── modules/
-│ └── environments/
-│ ├── dev/
-│ ├── staging/
-│ └── prod/
-└── README.md
 
+```
+backend/
+frontend/
 
----
-
-# 🌍 Environments
-
-Each cloud supports:
-
-- `dev`
-- `staging`
-- `prod`
-
-Managed via separate Terraform variable files.
-
----
-
-# ⚙️ Infrastructure Features
-
-| Feature | AWS | GCP |
-|----------|------|------|
-| Multi Environment | ✅ | ✅ |
-| Modular Terraform | ✅ | ✅ |
-| Private Compute | ✅ | ✅ |
-| Public Load Balancer | ✅ | ✅ |
-| Path Routing | ✅ | ✅ |
-| Autoscaling | ✅ | ✅ |
-| Zero Downtime | ✅ | ✅ |
-| NAT Gateway | ✅ | ✅ |
-
----
-
-# 🔁 Deployment Strategy
-
-## Zero Downtime Rolling Deployment
-
-ECS Configuration:
-
-- `deployment_minimum_healthy_percent = 100`
-- `deployment_maximum_percent = 200`
-- Deployment circuit breaker enabled
-- Health check grace period configured
-
-This ensures no traffic interruption during deployments.
-
----
-
-# 🔄 Autoscaling
-
-Target Tracking Policy:
-
-- Scale out when CPU > 60%
-- Scale in when CPU < 60%
-- Independent scaling for frontend & backend
+Infra/
+ ├── aws/
+ │   ├── modules/
+ │   │   ├── network/
+ │   │   ├── alb/
+ │   │   ├── compute/
+ │   ├── environments/
+ │   │   ├── dev/
+ │   │   ├── staging/
+ │   │   ├── prod/
+ │
+ ├── gcp/
+ │   ├── modules/
+ │   ├── environments/
+```
 
 ---
 
 # 🐳 Docker Images
 
-- Backend: `saravana2002/pgagi-backend`
-- Frontend: `saravana2002/pgagi-frontend`
+| Service  | Docker Image                         |
+| -------- | ------------------------------------ |
+| Backend  | `saravana2002/pgagi-backend:latest`  |
+| Frontend | `saravana2002/pgagi-frontend:latest` |
 
 ---
 
-# 🔐 Security
+# 🔁 Zero Downtime Strategy
 
-- Private ECS tasks
-- Security groups allow only ALB traffic
-- NAT gateway for outbound internet
-- No public IPs for containers
+* Deployment min healthy percent: 100%
+* Deployment max percent: 200%
+* Health check grace period: 60s
+* Circuit breaker enabled
+* ALB health check based routing
+
+---
+
+# 📈 Autoscaling
+
+ECS Services scale based on:
+
+* Target CPU Utilization = 60%
+* Configurable min / max capacity
+* Separate scaling for frontend & backend
+
+---
+
+# 🌎 Multi-Environment Support
+
+Each environment has:
+
+* Separate Terraform backend
+* Separate state
+* Separate scaling configuration
+
+```
+dev.tfvars
+staging.tfvars
+prod.tfvars
+```
+
+---
+
+# 🔐 Security Design
+
+* ECS tasks in private subnets
+* Only ALB exposed publicly
+* Security group restrictions
+* NAT Gateway for outbound traffic
+* No public container exposure
 
 ---
 
 # 🚀 CI/CD (Next Phase)
 
-Planned CI/CD includes:
+GitLab CI pipeline will:
 
-- Docker build
-- Push to registry
-- Automatic ECS service update
-- Terraform automation
-
----
-
-# 🧪 API Endpoints
-
-Backend:
-
-- `GET /api/health`
-- `GET /api/message`
+1. Build Docker images
+2. Push to DockerHub
+3. Update ECS service
+4. Optionally run Terraform apply
 
 ---
 
 # 👨‍💻 Author
 
-Saravana  
-DevOps Engineer | Cloud & Automation
+Saravana N
+DevOps Engineer
+
+---
+
+# 📊 Status
+
+✅ AWS Production Ready
+✅ GCP Production Ready
+🔄 CI/CD In Progress
+🔄 Monitoring Enhancement (Optional)
+
+---
+
+This project demonstrates real-world production DevOps architecture.
