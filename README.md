@@ -1,125 +1,199 @@
-# DevOps Assignment
+# 🚀 DevOps Assignment – Production Grade Cloud Deployment
 
-This project consists of a FastAPI backend and a Next.js frontend that communicates with the backend.
+This project demonstrates a production-ready DevOps architecture deploying a FastAPI backend and Next.js frontend using:
 
-## Project Structure
+- ✅ AWS (ECS Fargate, ALB, NAT, Autoscaling)
+- ✅ GCP (MIG, Global Load Balancer, NAT)
+- ✅ Modular Terraform (Multi-Environment)
+- ✅ Zero Downtime Deployments
+- ✅ Autoscaling (CPU-based)
+- ✅ Path-Based Routing
+- ✅ CI/CD Ready Structure
 
-```
+---
+
+# 🏗 Architecture Overview
+
+## AWS Architecture
+
+- VPC (Multi-AZ)
+- Public Subnets (ALB)
+- Private Subnets (ECS Fargate)
+- NAT Gateway (Internet access for containers)
+- Application Load Balancer
+- Path-based routing:
+  - `/` → Frontend
+  - `/api/*` → Backend
+- ECS Services (Frontend + Backend)
+- Auto Scaling (Target Tracking - 60% CPU)
+- Rolling Deployments (Zero Downtime)
+
+## GCP Architecture
+
+- Custom VPC
+- Private Compute Instances (MIG)
+- Global HTTP Load Balancer
+- Health Checks
+- Cloud NAT
+- Autoscaling
+- Path-based routing
+
+---
+
+# 📁 Repository Structure
+# 🚀 DevOps Assignment – Production Grade Cloud Deployment
+
+This project demonstrates a production-ready DevOps architecture deploying a FastAPI backend and Next.js frontend using:
+
+- ✅ AWS (ECS Fargate, ALB, NAT, Autoscaling)
+- ✅ GCP (MIG, Global Load Balancer, NAT)
+- ✅ Modular Terraform (Multi-Environment)
+- ✅ Zero Downtime Deployments
+- ✅ Autoscaling (CPU-based)
+- ✅ Path-Based Routing
+- ✅ CI/CD Ready Structure
+
+---
+
+# 🏗 Architecture Overview
+
+## AWS Architecture
+
+- VPC (Multi-AZ)
+- Public Subnets (ALB)
+- Private Subnets (ECS Fargate)
+- NAT Gateway (Internet access for containers)
+- Application Load Balancer
+- Path-based routing:
+  - `/` → Frontend
+  - `/api/*` → Backend
+- ECS Services (Frontend + Backend)
+- Auto Scaling (Target Tracking - 60% CPU)
+- Rolling Deployments (Zero Downtime)
+
+## GCP Architecture
+
+- Custom VPC
+- Private Compute Instances (MIG)
+- Global HTTP Load Balancer
+- Health Checks
+- Cloud NAT
+- Autoscaling
+- Path-based routing
+
+---
+
+# 📁 Repository Structure
 .
-├── backend/               # FastAPI backend
-│   ├── app/
-│   │   └── main.py       # Main FastAPI application
-│   └── requirements.txt    # Python dependencies
-└── frontend/              # Next.js frontend
-    ├── pages/
-    │   └── index.js     # Main page
-    ├── public/            # Static files
-    └── package.json       # Node.js dependencies
-```
+├── backend/
+├── frontend/
+├── Infra/
+│ ├── aws/
+│ │ ├── modules/
+│ │ └── environments/
+│ │ ├── dev/
+│ │ ├── staging/
+│ │ └── prod/
+│ └── gcp/
+│ ├── modules/
+│ └── environments/
+│ ├── dev/
+│ ├── staging/
+│ └── prod/
+└── README.md
 
-## Prerequisites
 
-- Python 3.8+
-- Node.js 16+
-- npm or yarn
+---
 
-## Backend Setup
+# 🌍 Environments
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+Each cloud supports:
 
-2. Create a virtual environment (recommended):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-   ```
+- `dev`
+- `staging`
+- `prod`
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Managed via separate Terraform variable files.
 
-4. Run the FastAPI server:
-   ```bash
-   uvicorn app.main:app --reload --port 8000
-   ```
+---
 
-   The backend will be available at `http://localhost:8000`
+# ⚙️ Infrastructure Features
 
-## Frontend Setup
+| Feature | AWS | GCP |
+|----------|------|------|
+| Multi Environment | ✅ | ✅ |
+| Modular Terraform | ✅ | ✅ |
+| Private Compute | ✅ | ✅ |
+| Public Load Balancer | ✅ | ✅ |
+| Path Routing | ✅ | ✅ |
+| Autoscaling | ✅ | ✅ |
+| Zero Downtime | ✅ | ✅ |
+| NAT Gateway | ✅ | ✅ |
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+---
 
-2. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn
-   ```
+# 🔁 Deployment Strategy
 
-3. Configure the backend URL (if different from default):
-   - Open `.env.local`
-   - Update `NEXT_PUBLIC_API_URL` with your backend URL
-   - Example: `NEXT_PUBLIC_API_URL=https://your-backend-url.com`
+## Zero Downtime Rolling Deployment
 
-4. Run the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
+ECS Configuration:
 
-   The frontend will be available at `http://localhost:3000`
+- `deployment_minimum_healthy_percent = 100`
+- `deployment_maximum_percent = 200`
+- Deployment circuit breaker enabled
+- Health check grace period configured
 
-## Changing the Backend URL
+This ensures no traffic interruption during deployments.
 
-To change the backend URL that the frontend connects to:
+---
 
-1. Open the `.env.local` file in the frontend directory
-2. Update the `NEXT_PUBLIC_API_URL` variable with your new backend URL
-3. Save the file
-4. Restart the Next.js development server for changes to take effect
+# 🔄 Autoscaling
 
-Example:
-```
-NEXT_PUBLIC_API_URL=https://your-new-backend-url.com
-```
+Target Tracking Policy:
 
-## For deployment:
-   ```bash
-   npm run build
-   # or
-   yarn build
-   ```
+- Scale out when CPU > 60%
+- Scale in when CPU < 60%
+- Independent scaling for frontend & backend
 
-   AND
+---
 
-   ```bash
-   npm run start
-   # or
-   yarn start
-   ```
+# 🐳 Docker Images
 
-   The frontend will be available at `http://localhost:3000`
+- Backend: `saravana2002/pgagi-backend`
+- Frontend: `saravana2002/pgagi-frontend`
 
-## Testing the Integration
+---
 
-1. Ensure both backend and frontend servers are running
-2. Open the frontend in your browser (default: http://localhost:3000)
-3. If everything is working correctly, you should see:
-   - A status message indicating the backend is connected
-   - The message from the backend: "You've successfully integrated the backend!"
-   - The current backend URL being used
+# 🔐 Security
 
-## API Endpoints
+- Private ECS tasks
+- Security groups allow only ALB traffic
+- NAT gateway for outbound internet
+- No public IPs for containers
 
-- `GET /api/health`: Health check endpoint
-  - Returns: `{"status": "healthy", "message": "Backend is running successfully"}`
+---
 
-- `GET /api/message`: Get the integration message
-  - Returns: `{"message": "You've successfully integrated the backend!"}`
+# 🚀 CI/CD (Next Phase)
+
+Planned CI/CD includes:
+
+- Docker build
+- Push to registry
+- Automatic ECS service update
+- Terraform automation
+
+---
+
+# 🧪 API Endpoints
+
+Backend:
+
+- `GET /api/health`
+- `GET /api/message`
+
+---
+
+# 👨‍💻 Author
+
+Saravana  
+DevOps Engineer | Cloud & Automation
