@@ -3,6 +3,15 @@ workflow:
     - if: '$ACTION == "none"'
       when: never
     - when: always
+    
+stages:
+  - validate
+  - plan
+  - apply
+  - build
+  - deploy
+  - destroy
+
 
 include:
   - local: '.gitlab-ci-aws.yml'
