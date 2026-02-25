@@ -7,7 +7,7 @@ stages:
   - deploy
 
 #################################################
-# FORCE MANUAL PIPELINE TRIGGER
+# FORCE MANUAL RUN
 #################################################
 
 workflow:
@@ -16,44 +16,20 @@ workflow:
     - when: never
 
 #################################################
-# REQUIRED INPUT VARIABLES
-#################################################
-
-variables:
-  CLOUD:
-    description: "Select Cloud Provider"
-  ENVIRONMENT:
-    description: "Select Environment (dev/staging/prod)"
-  ACTION:
-    description: "infra or deploy"
-
-#################################################
-# BEFORE SCRIPT (PATH VALIDATION)
-#################################################
-
-.before_terraform:
-  image:
-    name: hashicorp/terraform:1.6
-    entrypoint: [""]
-  before_script:
-    - export TF_ROOT="Infra/${CLOUD}/environments/${ENVIRONMENT}"
-    - echo "Selected Cloud: $CLOUD"
-    - echo "Selected Environment: $ENVIRONMENT"
-    - echo "Terraform Root Path: $TF_ROOT"
-    - |
-      if [ ! -d "$TF_ROOT" ]; then
-        echo "ERROR: Path $TF_ROOT does not exist"
-        exit 1
-      fi
-
-#################################################
 # TERRAFORM VALIDATE
 #################################################
 
 terraform_validate:
   stage: validate
-  extends: .before_terraform
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
   script:
+    - export TF_ROOT="Infra/${CLOUD}/environments/${ENVIRONMENT}"
+    - echo "Cloud: $CLOUD"
+    - echo "Environment: $ENVIRONMENT"
+    - echo "Path: $TF_ROOT"
+    - test -d "$TF_ROOT" || (echo "Invalid path!" && exit 1)
     - cd $TF_ROOT
     - terraform init -backend=false
     - terraform validate
@@ -66,25 +42,32 @@ terraform_validate:
 
 terraform_plan:
   stage: plan
-  extends: .before_terraform
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
   script:
+    - export TF_ROOT="Infra/${CLOUD}/environments/${ENVIRONMENT}"
+    - test -d "$TF_ROOT" || (echo "Invalid path!" && exit 1)
     - cd $TF_ROOT
     - terraform init
     - terraform plan -out=tfplan
   artifacts:
     paths:
-      - $TF_ROOT/tfplan
+      - Infra/${CLOUD}/environments/${ENVIRONMENT}/tfplan
   rules:
     - if: '$ACTION == "infra"'
 
 #################################################
-# TERRAFORM APPLY
+# TERRAFORM APPLY (Manual)
 #################################################
 
 terraform_apply:
   stage: apply
-  extends: .before_terraform
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
   script:
+    - export TF_ROOT="Infra/${CLOUD}/environments/${ENVIRONMENT}"
     - cd $TF_ROOT
     - terraform apply tfplan
   when: manual
@@ -92,13 +75,16 @@ terraform_apply:
     - if: '$ACTION == "infra"'
 
 #################################################
-# TERRAFORM DESTROY
+# TERRAFORM DESTROY (Manual)
 #################################################
 
 terraform_destroy:
   stage: destroy
-  extends: .before_terraform
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
   script:
+    - export TF_ROOT="Infra/${CLOUD}/environments/${ENVIRONMENT}"
     - cd $TF_ROOT
     - terraform destroy -auto-approve
   when: manual
@@ -124,7 +110,7 @@ build_images:
     - if: '$ACTION == "deploy"'
 
 #################################################
-# DEPLOY TO AWS (ECS)
+# DEPLOY AWS
 #################################################
 
 deploy_aws:
@@ -137,7 +123,7 @@ deploy_aws:
     - if: '$CLOUD == "aws" && $ACTION == "deploy"'
 
 #################################################
-# DEPLOY TO GCP (MIG Rolling Restart)
+# DEPLOY GCP
 #################################################
 
 deploy_gcp:
