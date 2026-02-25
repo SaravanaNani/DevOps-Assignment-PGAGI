@@ -11,4 +11,4 @@ include:
 variables:
   CLOUD: "aws"          # aws | gcp
   ENVIRONMENT: "dev"    # dev | staging | prod
-  ACTION: "infra"        # none | infra | deploy | destroy
+  ACTION: "deploy"        # none | infra | deploy | destroy
