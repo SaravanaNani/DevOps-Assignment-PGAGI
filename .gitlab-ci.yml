@@ -1,0 +1,140 @@
+stages:
+  - validate
+  - plan
+  - apply
+  - build
+  - deploy
+
+#############################################
+# GLOBAL VARIABLES (Editable from UI)
+#############################################
+
+variables:
+  CLOUD:
+    value: "aws"
+    options:
+      - aws
+      - gcp
+      - both
+  ENVIRONMENT:
+    value: "dev"
+    options:
+      - dev
+      - staging
+      - prod
+  ACTION:
+    value: "infra"
+    options:
+      - infra
+      - deploy
+      - both
+
+#############################################
+# TERRAFORM VALIDATE
+#############################################
+
+terraform_validate:
+  stage: validate
+  image: hashicorp/terraform:1.6
+  script:
+    - cd Infra/$CLOUD/environments/$ENVIRONMENT
+    - terraform init -backend=false
+    - terraform validate
+  rules:
+    - if: '$ACTION == "infra" || $ACTION == "both"'
+      when: always
+    - when: never
+
+#############################################
+# TERRAFORM PLAN
+#############################################
+
+terraform_plan:
+  stage: plan
+  image: hashicorp/terraform:1.6
+  script:
+    - cd Infra/$CLOUD/environments/$ENVIRONMENT
+    - terraform init
+    - terraform plan
+  rules:
+    - if: '$ACTION == "infra" || $ACTION == "both"'
+      when: always
+    - when: never
+
+#############################################
+# TERRAFORM APPLY (MANUAL SAFETY)
+#############################################
+
+terraform_apply:
+  stage: apply
+  image: hashicorp/terraform:1.6
+  script:
+    - cd Infra/$CLOUD/environments/$ENVIRONMENT
+    - terraform init
+    - terraform apply -auto-approve
+  when: manual
+  rules:
+    - if: '$ACTION == "infra" || $ACTION == "both"'
+      when: manual
+    - when: never
+
+#############################################
+# BUILD DOCKER IMAGES
+#############################################
+
+build_backend:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t saravana2002/pgagi-backend:$CI_COMMIT_SHORT_SHA ./backend
+    - docker login -u $DOCKER_USER -p $DOCKER_PASS
+    - docker push saravana2002/pgagi-backend:$CI_COMMIT_SHORT_SHA
+  rules:
+    - if: '$ACTION == "deploy" || $ACTION == "both"'
+      changes:
+        - backend/**
+
+build_frontend:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t saravana2002/pgagi-frontend:$CI_COMMIT_SHORT_SHA ./frontend
+    - docker login -u $DOCKER_USER -p $DOCKER_PASS
+    - docker push saravana2002/pgagi-frontend:$CI_COMMIT_SHORT_SHA
+  rules:
+    - if: '$ACTION == "deploy" || $ACTION == "both"'
+      changes:
+        - frontend/**
+
+#############################################
+# DEPLOY TO AWS
+#############################################
+
+deploy_aws:
+  stage: deploy
+  image: amazon/aws-cli
+  script:
+    - aws ecs update-service --cluster pgagi-$ENVIRONMENT-cluster --service pgagi-$ENVIRONMENT-backend-svc --force-new-deployment
+    - aws ecs update-service --cluster pgagi-$ENVIRONMENT-cluster --service pgagi-$ENVIRONMENT-frontend-svc --force-new-deployment
+  rules:
+    - if: '$CLOUD == "aws" && ($ACTION == "deploy" || $ACTION == "both")'
+
+#############################################
+# DEPLOY TO GCP
+#############################################
+
+deploy_gcp:
+  stage: deploy
+  image: google/cloud-sdk:latest
+  script:
+    - echo "$GCP_SA_KEY" > key.json
+    - gcloud auth activate-service-account --key-file=key.json
+    - gcloud config set project YOUR_GCP_PROJECT_ID
+    - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-backend-mig --zone asia-south1-a
+    - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-frontend-mig --zone asia-south1-a
+  rules:
+    - if: '$CLOUD == "gcp" && ($ACTION == "deploy" || $ACTION == "both")'
