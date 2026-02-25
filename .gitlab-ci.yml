@@ -13,7 +13,7 @@ stages:
 variables:
   CLOUD: "aws"          # aws or gcp
   ENVIRONMENT: "dev"    # dev / staging / prod
-  ACTION: "deploy"       # infra / deploy / destroy
+  ACTION: "destroy"       # infra / deploy / destroy
 
 #################################################
 # TERRAFORM VALIDATE (INFRA ONLY)
