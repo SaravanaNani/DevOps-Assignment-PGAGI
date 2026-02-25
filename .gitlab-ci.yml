@@ -66,6 +66,7 @@ terraform_apply:
   script:
     - export TF_ROOT="Infra/${CLOUD}/environments/${ENVIRONMENT}"
     - cd $TF_ROOT
+    - terraform init
     - terraform apply tfplan
   when: manual
   rules:
