@@ -6,7 +6,7 @@ stages:
   - deploy
 
 #############################################
-# GLOBAL VARIABLES (Editable from UI)
+# PIPELINE INPUT VARIABLES
 #############################################
 
 variables:
@@ -15,7 +15,6 @@ variables:
     options:
       - aws
       - gcp
-      - both
   ENVIRONMENT:
     value: "dev"
     options:
@@ -27,7 +26,6 @@ variables:
     options:
       - infra
       - deploy
-      - both
 
 #############################################
 # TERRAFORM VALIDATE
@@ -35,15 +33,15 @@ variables:
 
 terraform_validate:
   stage: validate
-  image: hashicorp/terraform:1.6
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
   script:
     - cd Infra/$CLOUD/environments/$ENVIRONMENT
     - terraform init -backend=false
     - terraform validate
   rules:
-    - if: '$ACTION == "infra" || $ACTION == "both"'
-      when: always
-    - when: never
+    - if: '$ACTION == "infra"'
 
 #############################################
 # TERRAFORM PLAN
@@ -51,35 +49,35 @@ terraform_validate:
 
 terraform_plan:
   stage: plan
-  image: hashicorp/terraform:1.6
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
   script:
     - cd Infra/$CLOUD/environments/$ENVIRONMENT
     - terraform init
     - terraform plan
   rules:
-    - if: '$ACTION == "infra" || $ACTION == "both"'
-      when: always
-    - when: never
+    - if: '$ACTION == "infra"'
 
 #############################################
-# TERRAFORM APPLY (MANUAL SAFETY)
+# TERRAFORM APPLY (MANUAL)
 #############################################
 
 terraform_apply:
   stage: apply
-  image: hashicorp/terraform:1.6
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
   script:
     - cd Infra/$CLOUD/environments/$ENVIRONMENT
     - terraform init
     - terraform apply -auto-approve
   when: manual
   rules:
-    - if: '$ACTION == "infra" || $ACTION == "both"'
-      when: manual
-    - when: never
+    - if: '$ACTION == "infra"'
 
 #############################################
-# BUILD DOCKER IMAGES
+# BUILD BACKEND
 #############################################
 
 build_backend:
@@ -92,9 +90,13 @@ build_backend:
     - docker login -u $DOCKER_USER -p $DOCKER_PASS
     - docker push saravana2002/pgagi-backend:$CI_COMMIT_SHORT_SHA
   rules:
-    - if: '$ACTION == "deploy" || $ACTION == "both"'
+    - if: '$ACTION == "deploy"'
       changes:
         - backend/**
+
+#############################################
+# BUILD FRONTEND
+#############################################
 
 build_frontend:
   stage: build
@@ -106,12 +108,12 @@ build_frontend:
     - docker login -u $DOCKER_USER -p $DOCKER_PASS
     - docker push saravana2002/pgagi-frontend:$CI_COMMIT_SHORT_SHA
   rules:
-    - if: '$ACTION == "deploy" || $ACTION == "both"'
+    - if: '$ACTION == "deploy"'
       changes:
         - frontend/**
 
 #############################################
-# DEPLOY TO AWS
+# DEPLOY AWS
 #############################################
 
 deploy_aws:
@@ -121,10 +123,10 @@ deploy_aws:
     - aws ecs update-service --cluster pgagi-$ENVIRONMENT-cluster --service pgagi-$ENVIRONMENT-backend-svc --force-new-deployment
     - aws ecs update-service --cluster pgagi-$ENVIRONMENT-cluster --service pgagi-$ENVIRONMENT-frontend-svc --force-new-deployment
   rules:
-    - if: '$CLOUD == "aws" && ($ACTION == "deploy" || $ACTION == "both")'
+    - if: '$CLOUD == "aws" && $ACTION == "deploy"'
 
 #############################################
-# DEPLOY TO GCP
+# DEPLOY GCP
 #############################################
 
 deploy_gcp:
@@ -137,4 +139,4 @@ deploy_gcp:
     - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-backend-mig --zone asia-south1-a
     - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-frontend-mig --zone asia-south1-a
   rules:
-    - if: '$CLOUD == "gcp" && ($ACTION == "deploy" || $ACTION == "both")'
+    - if: '$CLOUD == "gcp" && $ACTION == "deploy"'
