@@ -1,0 +1,131 @@
+stages:
+  - validate
+  - plan
+  - apply
+  - build
+  - deploy
+  - destroy
+
+############################################
+# GCP AUTH FUNCTION
+############################################
+
+.gcp_auth: &gcp_auth
+  - echo $GCP_ID_TOKEN > /tmp/gitlab_jwt_token
+  - gcloud iam workload-identity-pools create-cred-config \
+      $GCP_WORKLOAD_IDENTITY_PROVIDER \
+      --service-account=$GCP_SERVICE_ACCOUNT \
+      --output-file=/tmp/gcp-cred.json \
+      --credential-source-file=/tmp/gitlab_jwt_token
+  - gcloud auth login --cred-file=/tmp/gcp-cred.json
+  - gcloud config set project $GCP_PROJECT_ID
+  - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-cred.json
+
+############################################
+# TERRAFORM VALIDATE
+############################################
+
+terraform_validate_gcp:
+  stage: validate
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
+  id_tokens:
+    GCP_ID_TOKEN:
+      aud: https://iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-pool/providers/gitlab-provider
+  script:
+    - export TF_ROOT="Infra/gcp/environments/${ENVIRONMENT}"
+    - cd $TF_ROOT
+    - *gcp_auth
+    - terraform init -backend=false
+    - terraform validate
+  rules:
+    - if: '$CLOUD == "gcp" && $ACTION == "infra"'
+
+############################################
+# PLAN
+############################################
+
+terraform_plan_gcp:
+  stage: plan
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
+  id_tokens:
+    GCP_ID_TOKEN:
+      aud: https://iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-pool/providers/gitlab-provider
+  script:
+    - export TF_ROOT="Infra/gcp/environments/${ENVIRONMENT}"
+    - cd $TF_ROOT
+    - *gcp_auth
+    - terraform init
+    - terraform plan -out=tfplan
+  artifacts:
+    paths:
+      - Infra/gcp/environments/${ENVIRONMENT}/tfplan
+    expire_in: 7 days
+  rules:
+    - if: '$CLOUD == "gcp" && $ACTION == "infra"'
+
+############################################
+# APPLY
+############################################
+
+terraform_apply_gcp:
+  stage: apply
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
+  id_tokens:
+    GCP_ID_TOKEN:
+      aud: https://iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-pool/providers/gitlab-provider
+  script:
+    - export TF_ROOT="Infra/gcp/environments/${ENVIRONMENT}"
+    - cd $TF_ROOT
+    - *gcp_auth
+    - terraform init
+    - terraform apply tfplan
+  when: manual
+  rules:
+    - if: '$CLOUD == "gcp" && $ACTION == "infra"'
+
+############################################
+# DEPLOY (MIG RESTART)
+############################################
+
+deploy_gcp:
+  stage: deploy
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
+  id_tokens:
+    GCP_ID_TOKEN:
+      aud: https://iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-pool/providers/gitlab-provider
+  script:
+    - *gcp_auth
+    - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-backend-mig --zone asia-south1-a
+    - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-frontend-mig --zone asia-south1-a
+  rules:
+    - if: '$CLOUD == "gcp" && $ACTION == "deploy"'
+
+############################################
+# DESTROY
+############################################
+
+terraform_destroy_gcp:
+  stage: destroy
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
+  id_tokens:
+    GCP_ID_TOKEN:
+      aud: https://iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-pool/providers/gitlab-provider
+  script:
+    - export TF_ROOT="Infra/gcp/environments/${ENVIRONMENT}"
+    - cd $TF_ROOT
+    - *gcp_auth
+    - terraform init
+    - terraform destroy -auto-approve
+  when: manual
+  rules:
+    - if: '$CLOUD == "gcp" && $ACTION == "destroy"'
