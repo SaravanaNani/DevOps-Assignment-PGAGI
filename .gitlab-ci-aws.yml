@@ -1,0 +1,114 @@
+stages:
+  - validate
+  - plan
+  - apply
+  - build
+  - deploy
+  - destroy
+
+############################################
+# TERRAFORM VALIDATE (AWS)
+############################################
+
+terraform_validate_aws:
+  stage: validate
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
+  script:
+    - export TF_ROOT="Infra/aws/environments/${ENVIRONMENT}"
+    - cd $TF_ROOT
+    - terraform init -backend=false
+    - terraform validate
+  rules:
+    - if: '$CLOUD == "aws" && $ACTION == "infra"'
+
+############################################
+# TERRAFORM PLAN
+############################################
+
+terraform_plan_aws:
+  stage: plan
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
+  script:
+    - export TF_ROOT="Infra/aws/environments/${ENVIRONMENT}"
+    - cd $TF_ROOT
+    - terraform init
+    - terraform plan -out=tfplan
+  artifacts:
+    paths:
+      - Infra/aws/environments/${ENVIRONMENT}/tfplan
+    expire_in: 7 days
+  rules:
+    - if: '$CLOUD == "aws" && $ACTION == "infra"'
+
+############################################
+# APPLY (MANUAL)
+############################################
+
+terraform_apply_aws:
+  stage: apply
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
+  script:
+    - export TF_ROOT="Infra/aws/environments/${ENVIRONMENT}"
+    - cd $TF_ROOT
+    - terraform init
+    - terraform apply tfplan
+  when: manual
+  rules:
+    - if: '$CLOUD == "aws" && $ACTION == "infra"'
+
+############################################
+# BUILD IMAGES
+############################################
+
+build_images_aws:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t saravana2002/pgagi-backend:$CI_COMMIT_SHORT_SHA ./backend
+    - docker build -t saravana2002/pgagi-frontend:$CI_COMMIT_SHORT_SHA ./frontend
+    - docker login -u $DOCKER_USER -p $DOCKER_PASS
+    - docker push saravana2002/pgagi-backend:$CI_COMMIT_SHORT_SHA
+    - docker push saravana2002/pgagi-frontend:$CI_COMMIT_SHORT_SHA
+  rules:
+    - if: '$CLOUD == "aws" && $ACTION == "deploy"'
+
+############################################
+# DEPLOY ECS
+############################################
+
+deploy_aws:
+  stage: deploy
+  image:
+    name: amazon/aws-cli
+    entrypoint: [""]
+  script:
+    - aws ecs update-service --cluster pgagi-$ENVIRONMENT-cluster --service pgagi-$ENVIRONMENT-backend-svc --force-new-deployment
+    - aws ecs update-service --cluster pgagi-$ENVIRONMENT-cluster --service pgagi-$ENVIRONMENT-frontend-svc --force-new-deployment
+  rules:
+    - if: '$CLOUD == "aws" && $ACTION == "deploy"'
+
+############################################
+# DESTROY
+############################################
+
+terraform_destroy_aws:
+  stage: destroy
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
+  script:
+    - export TF_ROOT="Infra/aws/environments/${ENVIRONMENT}"
+    - cd $TF_ROOT
+    - terraform init
+    - terraform destroy -auto-approve
+  when: manual
+  rules:
+    - if: '$CLOUD == "aws" && $ACTION == "destroy"'
