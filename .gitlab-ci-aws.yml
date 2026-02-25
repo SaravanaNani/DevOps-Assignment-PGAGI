@@ -1,11 +1,3 @@
-stages:
-  - validate
-  - plan
-  - apply
-  - build
-  - deploy
-  - destroy
-
 ############################################
 # TERRAFORM VALIDATE (AWS)
 ############################################
