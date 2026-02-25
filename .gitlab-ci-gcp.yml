@@ -37,7 +37,7 @@ terraform_validate_gcp:
     entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
-      aud: $GCP_WORKLOAD_IDENTITY_PROVIDER
+      aud: "//iam.googleapis.com/projects/494503557788/locations/global/workloadIdentityPools/gitlab-provider/providers/gitlab"
   script:
     - *before_terraform
     - *gcp_auth
@@ -58,7 +58,7 @@ terraform_plan_gcp:
     entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
-      aud: $GCP_WORKLOAD_IDENTITY_PROVIDER
+      aud: "//iam.googleapis.com/projects/494503557788/locations/global/workloadIdentityPools/gitlab-provider/providers/gitlab"
   script:
     - *before_terraform
     - *gcp_auth
@@ -83,7 +83,7 @@ terraform_apply_gcp:
     entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
-      aud: $GCP_WORKLOAD_IDENTITY_PROVIDER
+      aud: "//iam.googleapis.com/projects/494503557788/locations/global/workloadIdentityPools/gitlab-provider/providers/gitlab"
   script:
     - *before_terraform
     - *gcp_auth
@@ -105,7 +105,7 @@ deploy_gcp:
     entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
-      aud: $GCP_WORKLOAD_IDENTITY_PROVIDER
+      aud: "//iam.googleapis.com/projects/494503557788/locations/global/workloadIdentityPools/gitlab-provider/providers/gitlab"
   script:
     - *gcp_auth
     - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-backend-mig --zone asia-south1-a
@@ -124,7 +124,7 @@ terraform_destroy_gcp:
     entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
-      aud: $GCP_WORKLOAD_IDENTITY_PROVIDER
+      aud: "//iam.googleapis.com/projects/494503557788/locations/global/workloadIdentityPools/gitlab-provider/providers/gitlab"
   script:
     - *before_terraform
     - *gcp_auth
