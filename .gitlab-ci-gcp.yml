@@ -1,21 +1,15 @@
-stages:
-  - validate
-  - plan
-  - apply
-  - deploy
-  - destroy
-
 ########################################################
 # GCP AUTH FUNCTION (OIDC)
 ########################################################
 
 .gcp_auth: &gcp_auth
   - echo "$GCP_ID_TOKEN" > /tmp/gitlab_jwt_token
-  - gcloud iam workload-identity-pools create-cred-config \
-      "$GCP_WORKLOAD_IDENTITY_PROVIDER" \
-      --service-account="$GCP_SERVICE_ACCOUNT_EMAIL" \
-      --output-file="/tmp/gcp-cred.json" \
-      --credential-source-file="/tmp/gitlab_jwt_token"
+  - >
+    gcloud iam workload-identity-pools create-cred-config
+    "$GCP_WORKLOAD_IDENTITY_PROVIDER"
+    --service-account="$GCP_SERVICE_ACCOUNT_EMAIL"
+    --output-file="/tmp/gcp-cred.json"
+    --credential-source-file="/tmp/gitlab_jwt_token"
   - gcloud auth login --cred-file="/tmp/gcp-cred.json"
   - gcloud config set project "$GCP_PROJECT_ID"
   - export GOOGLE_APPLICATION_CREDENTIALS="/tmp/gcp-cred.json"
