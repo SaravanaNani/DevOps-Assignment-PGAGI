@@ -5,9 +5,9 @@ stages:
   - deploy
   - destroy
 
-############################################
-# GCP AUTH FUNCTION
-############################################
+########################################################
+# GCP AUTH FUNCTION (OIDC)
+########################################################
 
 .gcp_auth: &gcp_auth
   - echo "$GCP_ID_TOKEN" > /tmp/gitlab_jwt_token
@@ -20,9 +20,9 @@ stages:
   - gcloud config set project "$GCP_PROJECT_ID"
   - export GOOGLE_APPLICATION_CREDENTIALS="/tmp/gcp-cred.json"
 
-############################################
-# COMMON SETUP (INSTALL TERRAFORM)
-############################################
+########################################################
+# INSTALL TERRAFORM
+########################################################
 
 .before_terraform: &before_terraform
   - apt-get update -y
@@ -32,14 +32,15 @@ stages:
   - mv terraform /usr/local/bin/
   - terraform version
 
-############################################
+########################################################
 # TERRAFORM VALIDATE
-############################################
+########################################################
 
 terraform_validate_gcp:
   stage: validate
-  image: google/cloud-sdk:latest
-  entrypoint: [""]
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
       aud: https://gitlab.com
@@ -52,14 +53,15 @@ terraform_validate_gcp:
   rules:
     - if: '$CLOUD == "gcp" && $ACTION == "infra"'
 
-############################################
+########################################################
 # TERRAFORM PLAN
-############################################
+########################################################
 
 terraform_plan_gcp:
   stage: plan
-  image: google/cloud-sdk:latest
-  entrypoint: [""]
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
       aud: https://gitlab.com
@@ -76,14 +78,15 @@ terraform_plan_gcp:
   rules:
     - if: '$CLOUD == "gcp" && $ACTION == "infra"'
 
-############################################
-# TERRAFORM APPLY
-############################################
+########################################################
+# TERRAFORM APPLY (MANUAL)
+########################################################
 
 terraform_apply_gcp:
   stage: apply
-  image: google/cloud-sdk:latest
-  entrypoint: [""]
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
       aud: https://gitlab.com
@@ -97,14 +100,15 @@ terraform_apply_gcp:
   rules:
     - if: '$CLOUD == "gcp" && $ACTION == "infra"'
 
-############################################
+########################################################
 # DEPLOY (MIG RESTART)
-############################################
+########################################################
 
 deploy_gcp:
   stage: deploy
-  image: google/cloud-sdk:latest
-  entrypoint: [""]
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
       aud: https://gitlab.com
@@ -115,14 +119,15 @@ deploy_gcp:
   rules:
     - if: '$CLOUD == "gcp" && $ACTION == "deploy"'
 
-############################################
-# DESTROY
-############################################
+########################################################
+# TERRAFORM DESTROY (MANUAL)
+########################################################
 
 terraform_destroy_gcp:
   stage: destroy
-  image: google/cloud-sdk:latest
-  entrypoint: [""]
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
   id_tokens:
     GCP_ID_TOKEN:
       aud: https://gitlab.com
