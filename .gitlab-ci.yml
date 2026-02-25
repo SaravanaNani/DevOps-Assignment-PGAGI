@@ -2,119 +2,130 @@ stages:
   - validate
   - plan
   - apply
+  - destroy
   - build
   - deploy
 
-#############################################
-# PIPELINE INPUT VARIABLES
-#############################################
+#################################################
+# FORCE MANUAL PIPELINE TRIGGER
+#################################################
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+
+#################################################
+# REQUIRED INPUT VARIABLES
+#################################################
 
 variables:
   CLOUD:
-    value: "aws"
-    options:
-      - aws
-      - gcp
+    description: "Select Cloud Provider"
   ENVIRONMENT:
-    value: "dev"
-    options:
-      - dev
-      - staging
-      - prod
+    description: "Select Environment (dev/staging/prod)"
   ACTION:
-    value: "infra"
-    options:
-      - infra
-      - deploy
+    description: "infra or deploy"
 
-#############################################
-# TERRAFORM VALIDATE
-#############################################
+#################################################
+# BEFORE SCRIPT (PATH VALIDATION)
+#################################################
 
-terraform_validate:
-  stage: validate
+.before_terraform:
   image:
     name: hashicorp/terraform:1.6
     entrypoint: [""]
+  before_script:
+    - export TF_ROOT="Infra/${CLOUD}/environments/${ENVIRONMENT}"
+    - echo "Selected Cloud: $CLOUD"
+    - echo "Selected Environment: $ENVIRONMENT"
+    - echo "Terraform Root Path: $TF_ROOT"
+    - |
+      if [ ! -d "$TF_ROOT" ]; then
+        echo "ERROR: Path $TF_ROOT does not exist"
+        exit 1
+      fi
+
+#################################################
+# TERRAFORM VALIDATE
+#################################################
+
+terraform_validate:
+  stage: validate
+  extends: .before_terraform
   script:
-    - cd Infra/$CLOUD/environments/$ENVIRONMENT
+    - cd $TF_ROOT
     - terraform init -backend=false
     - terraform validate
   rules:
     - if: '$ACTION == "infra"'
 
-#############################################
+#################################################
 # TERRAFORM PLAN
-#############################################
+#################################################
 
 terraform_plan:
   stage: plan
-  image:
-    name: hashicorp/terraform:1.6
-    entrypoint: [""]
+  extends: .before_terraform
   script:
-    - cd Infra/$CLOUD/environments/$ENVIRONMENT
+    - cd $TF_ROOT
     - terraform init
-    - terraform plan
+    - terraform plan -out=tfplan
+  artifacts:
+    paths:
+      - $TF_ROOT/tfplan
   rules:
     - if: '$ACTION == "infra"'
 
-#############################################
-# TERRAFORM APPLY (MANUAL)
-#############################################
+#################################################
+# TERRAFORM APPLY
+#################################################
 
 terraform_apply:
   stage: apply
-  image:
-    name: hashicorp/terraform:1.6
-    entrypoint: [""]
+  extends: .before_terraform
   script:
-    - cd Infra/$CLOUD/environments/$ENVIRONMENT
-    - terraform init
-    - terraform apply -auto-approve
+    - cd $TF_ROOT
+    - terraform apply tfplan
   when: manual
   rules:
     - if: '$ACTION == "infra"'
 
-#############################################
-# BUILD BACKEND
-#############################################
+#################################################
+# TERRAFORM DESTROY
+#################################################
 
-build_backend:
+terraform_destroy:
+  stage: destroy
+  extends: .before_terraform
+  script:
+    - cd $TF_ROOT
+    - terraform destroy -auto-approve
+  when: manual
+  rules:
+    - if: '$ACTION == "infra"'
+
+#################################################
+# BUILD DOCKER IMAGES
+#################################################
+
+build_images:
   stage: build
   image: docker:latest
   services:
     - docker:dind
   script:
     - docker build -t saravana2002/pgagi-backend:$CI_COMMIT_SHORT_SHA ./backend
-    - docker login -u $DOCKER_USER -p $DOCKER_PASS
-    - docker push saravana2002/pgagi-backend:$CI_COMMIT_SHORT_SHA
-  rules:
-    - if: '$ACTION == "deploy"'
-      changes:
-        - backend/**
-
-#############################################
-# BUILD FRONTEND
-#############################################
-
-build_frontend:
-  stage: build
-  image: docker:latest
-  services:
-    - docker:dind
-  script:
     - docker build -t saravana2002/pgagi-frontend:$CI_COMMIT_SHORT_SHA ./frontend
     - docker login -u $DOCKER_USER -p $DOCKER_PASS
+    - docker push saravana2002/pgagi-backend:$CI_COMMIT_SHORT_SHA
     - docker push saravana2002/pgagi-frontend:$CI_COMMIT_SHORT_SHA
   rules:
     - if: '$ACTION == "deploy"'
-      changes:
-        - frontend/**
 
-#############################################
-# DEPLOY AWS
-#############################################
+#################################################
+# DEPLOY TO AWS (ECS)
+#################################################
 
 deploy_aws:
   stage: deploy
@@ -125,9 +136,9 @@ deploy_aws:
   rules:
     - if: '$CLOUD == "aws" && $ACTION == "deploy"'
 
-#############################################
-# DEPLOY GCP
-#############################################
+#################################################
+# DEPLOY TO GCP (MIG Rolling Restart)
+#################################################
 
 deploy_gcp:
   stage: deploy
@@ -135,7 +146,7 @@ deploy_gcp:
   script:
     - echo "$GCP_SA_KEY" > key.json
     - gcloud auth activate-service-account --key-file=key.json
-    - gcloud config set project YOUR_GCP_PROJECT_ID
+    - gcloud config set project $GCP_PROJECT_ID
     - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-backend-mig --zone asia-south1-a
     - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-frontend-mig --zone asia-south1-a
   rules:
