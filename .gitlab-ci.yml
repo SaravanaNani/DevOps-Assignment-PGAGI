@@ -9,6 +9,6 @@ include:
   - local: '.gitlab-ci-gcp.yml'
 
 variables:
-  CLOUD: "aws"          # aws | gcp
+  CLOUD: "gcp"          # aws | gcp
   ENVIRONMENT: "dev"    # dev | staging | prod
-  ACTION: "deploy"        # none | infra | deploy | destroy
+  ACTION: "infra"        # none | infra | deploy | destroy
