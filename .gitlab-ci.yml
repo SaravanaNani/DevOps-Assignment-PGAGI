@@ -6,9 +6,36 @@ stages:
   - build
   - deploy
 
-#################################################
+#############################################
+# PIPELINE INPUTS (UI DROPDOWNS)
+#############################################
+
+inputs:
+  CLOUD:
+    description: "Select Cloud Provider"
+    options:
+      - aws
+      - gcp
+    default: aws
+
+  ENVIRONMENT:
+    description: "Select Environment"
+    options:
+      - dev
+      - staging
+      - prod
+    default: dev
+
+  ACTION:
+    description: "Select Action"
+    options:
+      - infra
+      - deploy
+    default: infra
+
+#############################################
 # TERRAFORM VALIDATE
-#################################################
+#############################################
 
 terraform_validate:
   stage: validate
@@ -17,16 +44,15 @@ terraform_validate:
     entrypoint: [""]
   script:
     - export TF_ROOT=Infra/$CLOUD/environments/$ENVIRONMENT
-    - echo $TF_ROOT
     - cd $TF_ROOT
     - terraform init -backend=false
     - terraform validate
   rules:
     - if: '$ACTION == "infra"'
 
-#################################################
+#############################################
 # TERRAFORM PLAN
-#################################################
+#############################################
 
 terraform_plan:
   stage: plan
@@ -44,9 +70,9 @@ terraform_plan:
   rules:
     - if: '$ACTION == "infra"'
 
-#################################################
+#############################################
 # TERRAFORM APPLY
-#################################################
+#############################################
 
 terraform_apply:
   stage: apply
@@ -61,26 +87,9 @@ terraform_apply:
   rules:
     - if: '$ACTION == "infra"'
 
-#################################################
-# TERRAFORM DESTROY
-#################################################
-
-terraform_destroy:
-  stage: destroy
-  image:
-    name: hashicorp/terraform:1.6
-    entrypoint: [""]
-  script:
-    - export TF_ROOT=Infra/$CLOUD/environments/$ENVIRONMENT
-    - cd $TF_ROOT
-    - terraform destroy -auto-approve
-  when: manual
-  rules:
-    - if: '$ACTION == "infra"'
-
-#################################################
-# BUILD DOCKER
-#################################################
+#############################################
+# BUILD
+#############################################
 
 build_images:
   stage: build
@@ -96,9 +105,9 @@ build_images:
   rules:
     - if: '$ACTION == "deploy"'
 
-#################################################
+#############################################
 # DEPLOY AWS
-#################################################
+#############################################
 
 deploy_aws:
   stage: deploy
@@ -108,19 +117,3 @@ deploy_aws:
     - aws ecs update-service --cluster pgagi-$ENVIRONMENT-cluster --service pgagi-$ENVIRONMENT-frontend-svc --force-new-deployment
   rules:
     - if: '$CLOUD == "aws" && $ACTION == "deploy"'
-
-#################################################
-# DEPLOY GCP
-#################################################
-
-deploy_gcp:
-  stage: deploy
-  image: google/cloud-sdk:latest
-  script:
-    - echo $GCP_SA_KEY > key.json
-    - gcloud auth activate-service-account --key-file=key.json
-    - gcloud config set project $GCP_PROJECT_ID
-    - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-backend-mig --zone asia-south1-a
-    - gcloud compute instance-groups managed rolling-action restart pgagi-$ENVIRONMENT-frontend-mig --zone asia-south1-a
-  rules:
-    - if: '$CLOUD == "gcp" && $ACTION == "deploy"'
