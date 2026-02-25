@@ -98,7 +98,9 @@ build_images:
 
 deploy_aws:
   stage: deploy
-  image: amazon/aws-cli
+  image:
+    name: amazon/aws-cli
+    entrypoint: [""]
   script:
     - echo "Deploying to AWS ECS..."
     - aws ecs update-service --cluster pgagi-$ENVIRONMENT-cluster --service pgagi-$ENVIRONMENT-backend-svc --force-new-deployment
@@ -110,12 +112,13 @@ deploy_aws:
 #################################################
 # DEPLOY GCP (ONLY IF CLOUD=gcp AND DEPLOY)
 #################################################
-
 deploy_gcp:
   stage: deploy
-  image: google/cloud-sdk:latest
+  image:
+    name: google/cloud-sdk:latest
+    entrypoint: [""]
   script:
-    - echo "Deploying to GCP MIG..."
+    - echo "Deploying to GCP..."
     - echo "$GCP_SA_KEY" > key.json
     - gcloud auth activate-service-account --key-file=key.json
     - gcloud config set project $GCP_PROJECT_ID
@@ -124,7 +127,6 @@ deploy_gcp:
   rules:
     - if: '$CLOUD == "gcp" && $ACTION == "deploy"'
     - when: never
-
 #################################################
 # DESTROY (MANUAL — ONLY IF ACTION=destroy)
 #################################################
