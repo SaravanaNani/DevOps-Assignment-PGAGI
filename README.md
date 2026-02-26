@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # DevOps Multi-Cloud Infrastructure & CI/CD Pipeline
 
 ## 📌 Overview
