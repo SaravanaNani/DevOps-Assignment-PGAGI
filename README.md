@@ -53,12 +53,7 @@ MIG maintains desired instance count
 Rolling restart ensures zero downtime  
 
 ---
-
-# 🌍 Environment Structure
-
-
 ## 🌍 Environment Structure
-
 ```
 Infra/
   aws/
