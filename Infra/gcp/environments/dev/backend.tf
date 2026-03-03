@@ -1,6 +1,6 @@
 terraform {
   backend "gcs" {
-    bucket = "pgagi-terraform-state"
+    bucket = "$YOUR_BUCKET_NAME"
     prefix = "gcp/dev"
   }
 }
