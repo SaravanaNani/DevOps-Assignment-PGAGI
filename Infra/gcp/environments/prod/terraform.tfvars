@@ -1,4 +1,4 @@
-project_id   = "gcp-practice-486317"
+project_id   = "$YOUR_PROJECT_ID"
 region       = "asia-south1"
 zone         = "asia-south1-a"
 
